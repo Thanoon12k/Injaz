@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.env/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Database (user data — don't commit)
+injaz.db
+
+# Assets generated at runtime
+assets/profile.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
