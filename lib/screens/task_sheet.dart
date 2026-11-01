@@ -110,6 +110,7 @@ class _TaskSheetState extends State<_TaskSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     final editing = widget.task != null;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -117,7 +118,7 @@ class _TaskSheetState extends State<_TaskSheet> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(editing ? 'Edit task' : 'New task',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: InjazColors.textDark)),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: p.ink)),
           const SizedBox(height: 14),
           TextField(
             controller: _title,
@@ -225,7 +226,7 @@ class _TaskSheetState extends State<_TaskSheet> {
           const SizedBox(height: 18),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: InjazColors.primary,
+              backgroundColor: p.task,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
@@ -242,8 +243,11 @@ class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return Padding(
         padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, color: InjazColors.textGrey)),
+        child: Text(text, style: TextStyle(fontWeight: FontWeight.w600, color: p.muted)),
       );
+  }
 }

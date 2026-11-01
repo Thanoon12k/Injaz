@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/linkify.dart';
@@ -13,23 +14,24 @@ class IdeaDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     return ListenableBuilder(
       listenable: AppStore.I,
       builder: (context, _) {
         final i = AppStore.I.ideaById(id);
         if (i == null) {
-          return const Scaffold(backgroundColor: FikraColors.sand50, body: Center(child: Text('Idea not found')));
+          return Scaffold(backgroundColor: p.paper, body: Center(child: Text('Idea not found')));
         }
         return Scaffold(
-          backgroundColor: FikraColors.sand50,
+          backgroundColor: p.paper,
           appBar: AppBar(
-            backgroundColor: FikraColors.sand50,
-            foregroundColor: FikraColors.stone700,
+            backgroundColor: p.paper,
+            foregroundColor: p.ink,
             actions: [
               IconButton(
                 tooltip: i.pinned ? 'Unpin' : 'Pin to top',
                 icon: Icon(i.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: i.pinned ? FikraColors.warm500 : null),
+                    color: i.pinned ? p.idea : null),
                 onPressed: () {
                   i.pinned = !i.pinned;
                   AppStore.I.updateIdea(i);
@@ -71,15 +73,29 @@ class IdeaDetail extends StatelessWidget {
           body: ListView(padding: const EdgeInsets.fromLTRB(22, 4, 22, 40), children: [
             Text(i.title,
                 textDirection: dirOf(i.title),
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: FikraColors.stone700)),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: p.ink)),
             const SizedBox(height: 6),
             Text(DateFormat('d MMMM yyyy · HH:mm').format(i.createdAt.toLocal()),
-                style: const TextStyle(color: FikraColors.stone400, fontSize: 13)),
+                style: TextStyle(color: p.muted, fontSize: 13)),
+            const SizedBox(height: 14),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: p.task, side: BorderSide(color: p.task.withValues(alpha: 0.4))),
+                icon: const Icon(Icons.add_task, size: 18),
+                label: const Text('Do it today'),
+                onPressed: () {
+                  AppStore.I.addTask(Task(title: i.title, description: i.description));
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('Added to today\'s tasks')));
+                },
+              ),
+            ),
             const SizedBox(height: 18),
             if (i.description.isNotEmpty)
               LinkText(i.description,
-                  style: const TextStyle(fontSize: 16.5, height: 1.6, color: FikraColors.stone700),
-                  linkColor: FikraColors.warm600),
+                  style: TextStyle(fontSize: 16.5, height: 1.6, color: p.ink),
+                  linkColor: p.idea),
             if (i.voice.isNotEmpty) ...[
               const SizedBox(height: 20),
               VoicePlayer(i.voice, key: ValueKey(i.voice)),

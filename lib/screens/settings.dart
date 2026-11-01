@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../store.dart';
 import '../theme.dart';
@@ -15,199 +14,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final s = AppStore.I;
   late final _name = TextEditingController(text: s.name);
   late final _bio = TextEditingController(text: s.bio);
-  final _email = TextEditingController();
-  final _pass = TextEditingController();
   bool _busy = false;
-  bool _create = false;
-  String? _error;
 
   @override
   void dispose() {
-    for (final c in [_name, _bio, _email, _pass]) {
-      c.dispose();
-    }
+    _name.dispose();
+    _bio.dispose();
     super.dispose();
   }
 
-  Future<void> _auth() async {
-    final email = _email.text.trim();
-    if (!email.contains('@') || _pass.text.length < 6) {
-      setState(() => _error = 'Enter a valid email and a password of 6+ characters.');
+  Future<void> _google() async {
+    if (!s.supabaseReady) {
+      _toast('No connection right now. Try again when online.');
       return;
     }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+    setState(() => _busy = true);
     try {
-      await s.signIn(email, _pass.text, create: _create);
-      _pass.clear();
-    } on AuthException catch (e) {
-      _error = e.message;
-    } catch (e) {
-      _error = 'No connection. Try again when you are online.';
+      await s.signInWithGoogle();
+    } catch (_) {
+      _toast('Could not open Google sign-in.');
     }
     if (mounted) setState(() => _busy = false);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final accent = s.mode == 'fikra' ? FikraColors.warm500 : InjazColors.primary;
-    return ListenableBuilder(
-      listenable: s,
-      builder: (context, _) {
-        final tasks = s.tasks;
-        final done = tasks.where((t) => t.isDone).length;
-        return Scaffold(
-          backgroundColor: const Color(0xFFF7F7F7),
-          appBar: AppBar(
-            title: const Text('Settings & sync', style: TextStyle(fontWeight: FontWeight.w700)),
-            backgroundColor: accent,
-            foregroundColor: Colors.white,
-          ),
-          body: ListView(padding: const EdgeInsets.all(16), children: [
-            _Card(title: 'Profile', children: [
-              TextField(controller: _name, decoration: const InputDecoration(hintText: 'Your name')),
-              const SizedBox(height: 10),
-              TextField(controller: _bio, decoration: const InputDecoration(hintText: 'Short bio (optional)')),
-              const SizedBox(height: 10),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: accent),
-                  onPressed: () {
-                    s.setProfile(_name.text.trim(), _bio.text.trim());
-                    FocusScope.of(context).unfocus();
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
-                  },
-                  child: const Text('Save'),
-                ),
-              ),
-            ]),
-            _Card(title: 'Account & sync', children: [
-              if (!s.supabaseReady)
-                const Text('Sync is unavailable right now. Everything is saved on this phone.',
-                    style: TextStyle(color: InjazColors.textGrey))
-              else if (s.signedIn) ...[
-                Row(children: [
-                  Icon(Icons.verified_user_outlined, color: accent),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(s.user!.email ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-                ]),
-                const SizedBox(height: 8),
-                Text(_syncLine(), style: const TextStyle(color: InjazColors.textGrey)),
-                const SizedBox(height: 8),
-                Row(children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.sync, size: 18),
-                    label: const Text('Sync now'),
-                    onPressed: s.syncState == SyncState.syncing ? null : s.syncNow,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: InjazColors.error),
-                    onPressed: s.signOut,
-                    child: const Text('Sign out'),
-                  ),
-                ]),
-              ] else ...[
-                const Text(
-                    'Works fully offline. Sign in to back up tasks and ideas and sync them across your devices automatically.',
-                    style: TextStyle(color: InjazColors.textGrey, height: 1.4)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: const InputDecoration(hintText: 'Email', prefixIcon: Icon(Icons.mail_outline)),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _pass,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.password],
-                  decoration: const InputDecoration(hintText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
-                  onSubmitted: (_) => _auth(),
-                ),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(_error!, style: const TextStyle(color: InjazColors.error)),
-                  ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: accent, minimumSize: const Size.fromHeight(48)),
-                  onPressed: _busy ? null : _auth,
-                  child: _busy
-                      ? const SizedBox(
-                          width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(_create ? 'Create account' : 'Sign in'),
-                ),
-                TextButton(
-                  onPressed: () => setState(() {
-                    _create = !_create;
-                    _error = null;
-                  }),
-                  child: Text(_create ? 'I already have an account' : 'New here? Create an account'),
-                ),
-              ],
-            ]),
-            _Card(title: 'Statistics', children: [
-              _Stat('Tasks', '${tasks.length}'),
-              _Stat('Completed', '$done'),
-              _Stat('Completion rate', tasks.isEmpty ? '—' : '${(done * 100 / tasks.length).round()}%'),
-              _Stat('Ideas', '${s.ideas.length}'),
-            ]),
-            const SizedBox(height: 8),
-            const Center(
-              child: Text('Injaz · إنجاز  +  Fikra · فِكْرة',
-                  style: TextStyle(color: InjazColors.textGrey, fontSize: 13)),
-            ),
-          ]),
-        );
-      },
-    );
-  }
+  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   String _syncLine() {
     final when = s.lastSync == null ? 'never' : DateFormat('d MMM, HH:mm').format(s.lastSync!);
     final state = switch (s.syncState) {
       SyncState.syncing => 'Syncing…',
       SyncState.offline => 'Offline — will sync when connected',
-      _ => 'Up to date',
+      SyncState.localOnly => 'Not syncing',
+      SyncState.synced => 'Up to date',
     };
-    final pending = s.pendingChanges;
-    return '$state · last sync $when${pending > 0 ? ' · $pending waiting' : ''}';
+    final n = s.pendingChanges;
+    return '$state · last sync $when${n > 0 ? ' · $n waiting' : ''}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return ListenableBuilder(
+      listenable: s,
+      builder: (context, _) {
+        final tasks = s.tasks;
+        final done = tasks.where((t) => t.isDone).length;
+        return Scaffold(
+          appBar: AppBar(title: const Text('Settings')),
+          body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 32), children: [
+            const SectionTitle('ACCOUNT'),
+            Surface(
+              child: s.signedIn
+                  ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Row(children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: p.taskSoft,
+                          foregroundImage: s.avatarUrl == null ? null : NetworkImage(s.avatarUrl!),
+                          child: Icon(Icons.person_outline, color: p.task),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(s.displayName.isEmpty ? 'Signed in' : s.displayName,
+                                style: TextStyle(fontWeight: FontWeight.w700, color: p.ink, fontSize: 16)),
+                            Text(s.user!.email ?? '', style: TextStyle(color: p.muted)),
+                          ]),
+                        ),
+                      ]),
+                      const SizedBox(height: 12),
+                      Text(_syncLine(), style: TextStyle(color: p.muted, fontSize: 13.5)),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.sync, size: 18),
+                          label: const Text('Sync now'),
+                          onPressed: s.syncState == SyncState.syncing ? null : s.syncNow,
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          style: TextButton.styleFrom(foregroundColor: p.danger),
+                          onPressed: s.signOut,
+                          child: const Text('Sign out'),
+                        ),
+                      ]),
+                    ])
+                  : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Text('You are using Injaz without an account. Everything is saved on this phone.',
+                          style: TextStyle(color: p.muted, height: 1.4)),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: p.task),
+                        icon: _busy
+                            ? const SizedBox(
+                                width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.login),
+                        label: const Text('Sign in with Google to sync'),
+                        onPressed: _busy ? null : _google,
+                      ),
+                    ]),
+            ),
+            const SectionTitle('PROFILE'),
+            Surface(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                TextField(
+                  controller: _name,
+                  decoration: InputDecoration(hintText: s.displayName.isEmpty ? 'Your name' : s.displayName),
+                ),
+                const SizedBox(height: 10),
+                TextField(controller: _bio, decoration: const InputDecoration(hintText: 'A line about you (optional)')),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: p.task, minimumSize: const Size(96, 44)),
+                    onPressed: () {
+                      s.setProfile(_name.text.trim(), _bio.text.trim());
+                      FocusScope.of(context).unfocus();
+                      _toast('Saved');
+                    },
+                    child: const Text('Save'),
+                  ),
+                ),
+              ]),
+            ),
+            const SectionTitle('YOUR NUMBERS'),
+            Surface(
+              child: Row(children: [
+                _Num('${tasks.length}', 'tasks', p.task),
+                _Num('$done', 'done', p.task),
+                _Num(tasks.isEmpty ? '—' : '${(done * 100 / tasks.length).round()}%', 'rate', p.task),
+                _Num('${s.ideas.length}', 'ideas', p.idea),
+              ]),
+            ),
+            const SizedBox(height: 24),
+            Center(child: Text('Injaz · إنجاز', style: TextStyle(color: p.muted, fontSize: 13))),
+          ]),
+        );
+      },
+    );
   }
 }
 
-class _Card extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _Card({required this.title, required this.children});
+class _Num extends StatelessWidget {
+  final String value, label;
+  final Color color;
+  const _Num(this.value, this.label, this.color);
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          ...children,
-        ]),
-      );
-}
-
-class _Stat extends StatelessWidget {
-  final String label, value;
-  const _Stat(this.label, this.value);
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [
-          Text(label, style: const TextStyle(color: InjazColors.textGrey)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+  Widget build(BuildContext context) => Expanded(
+        child: Column(children: [
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(color: context.pal.muted, fontSize: 12.5)),
         ]),
       );
 }

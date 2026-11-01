@@ -23,7 +23,7 @@ class AppStore extends ChangeNotifier {
 
   final List<Task> _tasks = [];
   final List<Idea> _ideas = [];
-  String mode = 'injaz'; // injaz | fikra
+  bool offlineChosen = false; // user chose to use the app without an account
   String name = '';
   String bio = '';
   String? _taskCursor;
@@ -55,7 +55,7 @@ class AppStore extends ChangeNotifier {
             .map((e) => Task.fromJson(Map<String, dynamic>.from(e as Map))));
         _ideas.addAll(((j['ideas'] ?? []) as List)
             .map((e) => Idea.fromJson(Map<String, dynamic>.from(e as Map))));
-        mode = (j['mode'] ?? 'injaz') as String;
+        offlineChosen = j['offline_chosen'] == true;
         name = (j['name'] ?? '') as String;
         bio = (j['bio'] ?? '') as String;
         _taskCursor = j['task_cursor'] as String?;
@@ -70,11 +70,34 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  Future<void>? _saving;
+  bool _saveAgain = false;
+
+  /// Saves are serialised (and coalesced) so two writes never race on the temp file.
   Future<void> _save() async {
+    if (_saving != null) {
+      _saveAgain = true;
+      return _saving;
+    }
+    _saving = () async {
+      do {
+        _saveAgain = false;
+        try {
+          await _write();
+        } catch (e) {
+          debugPrint('save failed: $e');
+        }
+      } while (_saveAgain);
+    }();
+    await _saving;
+    _saving = null;
+  }
+
+  Future<void> _write() async {
     final data = jsonEncode({
       'tasks': _tasks.map((t) => t.toJson()).toList(),
       'ideas': _ideas.map((i) => i.toJson()).toList(),
-      'mode': mode,
+      'offline_chosen': offlineChosen,
       'name': name,
       'bio': bio,
       'task_cursor': _taskCursor,
@@ -94,10 +117,19 @@ class AppStore extends ChangeNotifier {
     if (sync) scheduleSync();
   }
 
-  void setMode(String m) {
-    mode = m;
+  void useOffline() {
+    offlineChosen = true;
     _changed(sync: false);
   }
+
+  String get displayName {
+    if (name.isNotEmpty) return name;
+    final meta = user?.userMetadata;
+    final n = (meta?['full_name'] ?? meta?['name'] ?? '') as String;
+    return n.isNotEmpty ? n.split(' ').first : '';
+  }
+
+  String? get avatarUrl => user?.userMetadata?['avatar_url'] as String?;
 
   void setProfile(String n, String b) {
     name = n;
@@ -232,18 +264,17 @@ class AppStore extends ChangeNotifier {
   }
 
   // ── Auth ──────────────────────────────────────────────────────
-  Future<void> signIn(String email, String password, {required bool create}) async {
-    final auth = _db!.auth;
-    if (create) {
-      final r = await auth.signUp(email: email, password: password);
-      if (r.session == null) {
-        throw const AuthException('Account created. Confirm your email, then sign in.');
-      }
-    } else {
-      await auth.signInWithPassword(email: email, password: password);
-    }
-    _adoptUser();
-    await syncNow();
+  static const authRedirect = 'com.thanoon.injaz://login-callback';
+
+  /// Opens Google sign-in in the browser; the app returns via [authRedirect]
+  /// and the auth listener below picks up the session.
+  Future<void> signInWithGoogle() async {
+    await _db!.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: authRedirect,
+      authScreenLaunchMode: LaunchMode.externalApplication,
+      queryParams: const {'prompt': 'select_account'},
+    );
   }
 
   Future<void> signOut() async {
@@ -275,7 +306,10 @@ class AppStore extends ChangeNotifier {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 45), (_) => syncNow());
     _db?.auth.onAuthStateChange.listen((s) {
-      if (s.session != null) _adoptUser();
+      if (s.event == AuthChangeEvent.signedIn) {
+        _adoptUser();
+        syncNow();
+      }
       notifyListeners();
     });
     syncNow();

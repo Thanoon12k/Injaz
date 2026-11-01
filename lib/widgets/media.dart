@@ -18,26 +18,27 @@ class MediaImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     final local = AppStore.I.mediaFile(name);
-    if (local.existsSync()) return Image.file(local, fit: fit, errorBuilder: (_, _, _) => _broken());
+    if (local.existsSync()) return Image.file(local, fit: fit, errorBuilder: (_, _, _) => _broken(p));
     return FutureBuilder<File?>(
       future: AppStore.I.ensureMedia(name),
       builder: (_, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const ColoredBox(
-            color: FikraColors.sand100,
+          return ColoredBox(
+            color: p.ideaSoft,
             child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
           );
         }
         final f = snap.data;
-        return f == null ? _broken() : Image.file(f, fit: fit, errorBuilder: (_, _, _) => _broken());
+        return f == null ? _broken(p) : Image.file(f, fit: fit, errorBuilder: (_, _, _) => _broken(p));
       },
     );
   }
 
-  Widget _broken() => const ColoredBox(
-        color: FikraColors.sand100,
-        child: Center(child: Icon(Icons.image_not_supported_outlined, color: FikraColors.sand400)),
+  Widget _broken(Palette p) => ColoredBox(
+        color: p.ideaSoft,
+        child: Center(child: Icon(Icons.image_not_supported_outlined, color: p.muted)),
       );
 }
 
@@ -107,17 +108,18 @@ class _VoicePlayerState extends State<VoicePlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     final max = _dur.inMilliseconds.toDouble();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: FikraColors.sand100,
+        color: p.ideaSoft,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: FikraColors.sand200),
+        border: Border.all(color: p.line),
       ),
       child: Row(children: [
         IconButton(
-          color: FikraColors.warm600,
+          color: p.idea,
           icon: _loading
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
               : Icon(_missing
@@ -136,8 +138,8 @@ class _VoicePlayerState extends State<VoicePlayer> {
               overlayShape: SliderComponentShape.noOverlay,
             ),
             child: Slider(
-              activeColor: FikraColors.warm500,
-              inactiveColor: FikraColors.sand300,
+              activeColor: p.idea,
+              inactiveColor: p.line,
               value: max <= 0 ? 0 : _pos.inMilliseconds.clamp(0, max.toInt()).toDouble(),
               max: max <= 0 ? 1 : max,
               onChanged: max <= 0 ? null : (v) => _p.seek(Duration(milliseconds: v.toInt())),
@@ -146,10 +148,10 @@ class _VoicePlayerState extends State<VoicePlayer> {
         ),
         const SizedBox(width: 8),
         Text(_missing ? 'offline' : _fmt(_dur > Duration.zero ? (_playing ? _pos : _dur) : _pos),
-            style: const TextStyle(color: FikraColors.sand800, fontSize: 13)),
+            style: TextStyle(color: p.muted, fontSize: 13)),
         if (widget.onRemove != null)
           IconButton(
-            icon: const Icon(Icons.close, size: 18, color: FikraColors.stone400),
+            icon: Icon(Icons.close, size: 18, color: p.muted),
             onPressed: widget.onRemove,
           )
         else
@@ -210,11 +212,12 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
-        foregroundColor: _recording ? Colors.red : FikraColors.stone700,
-        backgroundColor: _recording ? Colors.red.withValues(alpha: 0.06) : FikraColors.sand100,
-        side: BorderSide(color: _recording ? Colors.red : FikraColors.sand300),
+        foregroundColor: _recording ? Colors.red : p.ink,
+        backgroundColor: _recording ? Colors.red.withValues(alpha: 0.06) : p.ideaSoft,
+        side: BorderSide(color: _recording ? Colors.red : p.line),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         minimumSize: const Size(0, 46),
       ),

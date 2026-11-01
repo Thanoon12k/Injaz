@@ -66,12 +66,13 @@ class _IdeaEditorState extends State<IdeaEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     final editing = widget.idea != null;
     return Scaffold(
-      backgroundColor: FikraColors.sand50,
+      backgroundColor: p.paper,
       appBar: AppBar(
-        backgroundColor: FikraColors.sand50,
-        foregroundColor: FikraColors.stone700,
+        backgroundColor: p.paper,
+        foregroundColor: p.ink,
         title: Text(editing ? 'Refine your idea' : 'New idea', style: const TextStyle(fontWeight: FontWeight.w600)),
         actions: [
           ValueListenableBuilder(
@@ -91,7 +92,7 @@ class _IdeaEditorState extends State<IdeaEditor> {
             autofocus: !editing && widget.titleHint.isEmpty,
             textDirection: v.text.isEmpty ? null : dirOf(v.text),
             textCapitalization: TextCapitalization.sentences,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: FikraColors.stone700),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: p.ink),
             decoration: const InputDecoration(hintText: 'Title', fillColor: Colors.white),
           ),
         ),
@@ -104,7 +105,7 @@ class _IdeaEditorState extends State<IdeaEditor> {
             maxLines: 14,
             textDirection: v.text.isEmpty ? null : dirOf(v.text),
             textCapitalization: TextCapitalization.sentences,
-            style: const TextStyle(fontSize: 16, height: 1.45, color: FikraColors.stone700),
+            style: TextStyle(fontSize: 16, height: 1.45, color: p.ink),
             decoration: const InputDecoration(
               hintText: 'Describe it… links become clickable',
               fillColor: Colors.white,
@@ -112,7 +113,7 @@ class _IdeaEditorState extends State<IdeaEditor> {
           ),
         ),
         const SizedBox(height: 18),
-        const Text('Voice note', style: TextStyle(fontWeight: FontWeight.w600, color: FikraColors.sand800)),
+        Text('Voice note', style: TextStyle(fontWeight: FontWeight.w600, color: p.muted)),
         const SizedBox(height: 8),
         if (_voice.isEmpty)
           Align(
@@ -122,7 +123,7 @@ class _IdeaEditorState extends State<IdeaEditor> {
         else
           VoicePlayer(_voice, key: ValueKey(_voice), onRemove: () => setState(() => _voice = '')),
         const SizedBox(height: 18),
-        const Text('Photos', style: TextStyle(fontWeight: FontWeight.w600, color: FikraColors.sand800)),
+        Text('Photos', style: TextStyle(fontWeight: FontWeight.w600, color: p.muted)),
         const SizedBox(height: 8),
         Wrap(spacing: 10, runSpacing: 10, children: [
           for (final n in _images)
@@ -158,22 +159,25 @@ class _AddTile extends StatelessWidget {
   final VoidCallback onTap;
   const _AddTile({required this.icon, required this.label, required this.onTap});
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Container(
           width: 92,
           height: 92,
           decoration: BoxDecoration(
-            color: FikraColors.sand100,
+            color: p.ideaSoft,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: FikraColors.sand300),
+            border: Border.all(color: p.line),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, color: FikraColors.sand600),
+            Icon(icon, color: p.idea),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12, color: FikraColors.sand600)),
+            Text(label, style: TextStyle(fontSize: 12, color: p.idea)),
           ]),
         ),
       );
+  }
 }

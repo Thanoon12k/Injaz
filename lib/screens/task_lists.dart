@@ -4,14 +4,7 @@ import 'package:intl/intl.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
-import '../widgets/task_card.dart';
-
-PreferredSizeWidget _bar(String title, {List<Widget>? actions}) => AppBar(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      backgroundColor: InjazColors.primary,
-      foregroundColor: Colors.white,
-      actions: actions,
-    );
+import '../widgets/task_tile.dart';
 
 /// Unfinished tasks from previous days — bring them to today.
 class PastTasksScreen extends StatelessWidget {
@@ -19,16 +12,15 @@ class PastTasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     return ListenableBuilder(
       listenable: AppStore.I,
       builder: (context, _) {
         final list = AppStore.I.pastUnfinished;
         return Scaffold(
-          backgroundColor: const Color(0xFFF1FAFB),
-          appBar: _bar('Unfinished from earlier', actions: [
+          appBar: AppBar(title: const Text('Unfinished from earlier'), actions: [
             if (list.isNotEmpty)
               TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
                 onPressed: () {
                   for (final t in list) {
                     AppStore.I.moveToToday(t);
@@ -39,20 +31,12 @@ class PastTasksScreen extends StatelessWidget {
               ),
           ]),
           body: list.isEmpty
-              ? const _Empty('Nothing left behind 👏')
+              ? Center(child: Text('Nothing left behind 👏', style: TextStyle(color: p.muted, fontSize: 16)))
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   itemCount: list.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => Row(children: [
-                    Expanded(child: TaskCard(task: list[i], showDate: true)),
-                    IconButton(
-                      tooltip: 'Move to today',
-                      color: InjazColors.primary,
-                      icon: const Icon(Icons.today_rounded),
-                      onPressed: () => AppStore.I.moveToToday(list[i]),
-                    ),
-                  ]),
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => TaskTile(task: list[i], showDate: true),
                 ),
         );
       },
@@ -73,6 +57,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.pal;
     return ListenableBuilder(
       listenable: AppStore.I,
       builder: (context, _) {
@@ -91,35 +76,32 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
             day = t.dateAssigned;
             rows.add(_DayHeader(day));
           }
-          rows.add(Padding(padding: const EdgeInsets.only(bottom: 10), child: TaskCard(task: t)));
+          rows.add(Padding(padding: const EdgeInsets.only(bottom: 8), child: TaskTile(task: t)));
         }
-        final total = AppStore.I.tasks.length;
-        final done = AppStore.I.tasks.where((t) => t.isDone).length;
         return Scaffold(
-          backgroundColor: const Color(0xFFF1FAFB),
-          appBar: _bar('All tasks'),
+          appBar: AppBar(title: const Text('All tasks')),
           body: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               child: TextField(
-                decoration: const InputDecoration(
-                    hintText: 'Search tasks', prefixIcon: Icon(Icons.search), fillColor: Colors.white),
+                decoration: const InputDecoration(hintText: 'Search tasks', prefixIcon: Icon(Icons.search)),
                 onChanged: (v) => setState(() => _q = v),
               ),
             ),
             SizedBox(
-              height: 52,
+              height: 54,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                 children: [
-                  for (final e in {'all': 'All ($total)', ...statusLabel}.entries)
+                  for (final e in {'all': 'All', ...statusLabel}.entries)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
-                        label: Text(e.key == 'completed' ? 'Completed ($done)' : e.value),
+                        label: Text(e.value),
                         selected: _status == e.key,
                         showCheckmark: false,
+                        selectedColor: p.taskSoft,
                         onSelected: (_) => setState(() => _status = e.key),
                       ),
                     ),
@@ -128,7 +110,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
             ),
             Expanded(
               child: rows.isEmpty
-                  ? const _Empty('No tasks found')
+                  ? Center(child: Text('No tasks found', style: TextStyle(color: p.muted)))
                   : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: rows),
             ),
           ]),
@@ -150,17 +132,8 @@ class _DayHeader extends StatelessWidget {
             ? day
             : DateFormat('EEEE, d MMM yyyy').format(d);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
-      child: Text(label,
-          style: const TextStyle(fontWeight: FontWeight.w700, color: InjazColors.primaryDarker, fontSize: 14)),
+      padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
+      child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: context.pal.muted, fontSize: 13.5)),
     );
   }
-}
-
-class _Empty extends StatelessWidget {
-  final String text;
-  const _Empty(this.text);
-  @override
-  Widget build(BuildContext context) =>
-      Center(child: Text(text, style: const TextStyle(color: InjazColors.textGrey, fontSize: 17)));
 }

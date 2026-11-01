@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config.dart';
 import 'screens/home.dart';
+import 'screens/welcome.dart';
 import 'store.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-  ));
   await AppStore.I.load();
   try {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey)
@@ -50,17 +47,23 @@ class _InjazAppState extends State<InjazApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: AppStore.I,
-      builder: (context, _) {
-        final fikra = AppStore.I.mode == 'fikra';
-        return MaterialApp(
-          title: 'Injaz',
-          debugShowCheckedModeBanner: false,
-          theme: buildTheme(fikra ? FikraColors.warm500 : InjazColors.primary),
-          home: const HomeScreen(),
-        );
-      },
+    return MaterialApp(
+      title: 'Injaz',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      home: ListenableBuilder(
+        listenable: AppStore.I,
+        builder: (context, _) {
+          final s = AppStore.I;
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: s.signedIn || s.offlineChosen
+                ? const HomeScreen(key: ValueKey('home'))
+                : const WelcomeScreen(key: ValueKey('welcome')),
+          );
+        },
+      ),
     );
   }
 }

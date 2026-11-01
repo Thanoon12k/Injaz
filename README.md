@@ -5,20 +5,23 @@ Comes as a **Python desktop app** and a **Flutter mobile app** (Android) that al
 
 ## 📱 Mobile app (Flutter)
 
-Two modes, switched from the pill at the top of the screen:
+One calm app for your day and your ideas — tasks and ideas live together on a single screen.
 
-- **✓ Injaz** — today's tasks only: quick-add bar, tap the circle to move a task
-  pending → in progress → done, tap a card for details and its checklist, swipe to delete (with undo).
-  Finished tasks fold into a "Completed" row; unfinished tasks from earlier days show as one small chip.
-- **💡 Fikra** — "What are you thinking?": capture an idea in one line, or add details, photos and a
-  voice note. URLs in descriptions are clickable. Pin ideas to keep them on top. Arabic text is right-aligned automatically.
+- **One capture bar** — type, pick **Task** or **Idea**, send. The ⚙ button opens the full form
+  (time, priority, checklist for tasks; photos, voice note and details for ideas).
+- **Today** — only today's tasks. Tap the ring to finish a task, hold it to set *Doing*, tap the row
+  for details and steps, swipe to delete (with undo). Ring colour = priority. Unfinished tasks from earlier
+  days show as one line you can open.
+- **Ideas** — your latest ideas under today's tasks; links are clickable, Arabic is right-aligned automatically,
+  pin the important ones, and **Do it today** turns an idea into a task.
+- Everything else (all tasks, all ideas, settings) is behind your avatar.
+- Light and dark themes follow the phone.
 
-Everything else (all tasks, unfinished from earlier, settings, account) lives in the ☰ menu.
-
-**Offline-first sync.** Data is saved on the phone first and works with no internet. Sign in (Settings & sync)
-with an email and password to back it up to Supabase and sync across devices automatically — on launch,
-on return to the app, a couple of seconds after each change and every 45 s. Photos and voice notes go to a private
-storage bucket. Each account only sees its own rows (row-level security).
+**Sign in with Google** to back up and sync across devices (or use it without an account).
+Data is saved on the phone first and syncs automatically on launch, on return to the app, a couple of
+seconds after each change and every 45 s. Photos and voice notes go to a private storage bucket; each
+account only sees its own rows (row-level security). Google sign-in returns to the app via
+`com.thanoon.injaz://login-callback`, which must be listed in Supabase → Authentication → URL Configuration → Redirect URLs.
 
 Supabase tables: `injaz_tasks`, `fikra_ideas`, bucket `fikra-media` (see `lib/store.dart` for the sync logic).
 
