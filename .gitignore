@@ -30,3 +30,17 @@ assets/profile.*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── Flutter mobile app ────────────────────────────────────────
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+*.iml
+android/app/upload.jks
+android/local.properties
+android/.gradle/
+android/.kotlin/
+android/app/src/main/java/io/flutter/plugins/
+.env
